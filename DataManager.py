@@ -29,13 +29,13 @@ def TimeframeType(str):
 class CandleData:
 
     def __init__(self, 
-                 stream,
-                 contract_id: str | None, 
-                 interface=Api | None, 
-                 timeframe='m' | 's, m, h, D, W, M, Y', 
+                 contract_id: str, 
+                 interface: Api | None = None, 
+                 timeframe: str = 'm' | 's, m, h, D, W, M, Y', 
                  compound: int = 1, 
-                 max = 1000, 
-                 subscribe = list[dataset, schema, stype_in, symbols]):
+                 max: int = 1000, 
+                 stream: str | None = None,
+                 subscribe: list = [dataset, schema, stype_in, symbols]):
         
         self.api = interface
         self.stream = stream
@@ -44,6 +44,7 @@ class CandleData:
         self.data = [None] * max
         self.max = max
         self.con_id = contract_id
+        self.close = None
 
         if self.api == None:
             pass #databento implementation coming later
@@ -54,9 +55,26 @@ class CandleData:
             pass #databento implementation coming later
 
         else:
-            
-            candles = await Get_Candles_Sync(self.api.token,self.con_id,unit=self.timeframe,unit_num=self.compound,limit=self.max)
+
+            candles = await Get_Candles_Sync(self.api.token,
+                                             self.con_id,
+                                             unit=self.timeframe,
+                                             unit_num=self.compound,
+                                             limit=self.max)
+            self.data = candles if candles != '' else self.data
 
 
     async def GetClose(self): #gets live price data if needed
-        pass
+        
+        if self.api == None:
+            pass #databento implementation coming later
+
+        else:
+
+            candles = await Get_Candles_Sync(self.api.token,
+                                             self.con_id,
+                                             unit=self.timeframe,
+                                             unit_num=self.compound,
+                                             limit=2,
+                                             include_current=True)
+            self.close = candles[0]['c'] if candles != '' else self.close
