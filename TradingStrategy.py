@@ -15,10 +15,25 @@ from DataManager import CandleData as Chart
 
 #will add databento compatibility in future update
 
+def TimeToNext(mins: int | float):
+
+    now = datetime.now()
+    next: float
+
+    if type(mins) == int:
+        next = mins - now.minute % mins * 60 - now.second - now.microsecond / 1_000_000
+
+    elif type(mins) == float: 
+        min = now.minute + now.second / 60 + now.microsecond / 60_000_000
+        next = (mins - min % mins) * 60
+
+    return next
+
 class Strategy:
 
-    def __init__(self,primary: int = 0,data: None | list[dataset,schema,stype_in,symbols] = None):
+    def __init__(self, name: str, primary: int = 0):
 
+        self.name = name
         self.api = Api()
         self.acc_list = AccList(self.api)
         self.primary = Acc(self.acc_list,primary)
@@ -26,7 +41,66 @@ class Strategy:
         self.log = Log(self.api,self.primary)
         self.data = []
         self.scheduler = []
+        self.structured_scheduler = []
+        self.tasksOngoing = []
+        self.running = False
         self.loop = asyncio.new_event_loop()
+
+    def __str__(self, api_up: None | bool = None):
+        
+        """
+        Format:
+
+        self.name
+        Api connection:
+        [api str]
+
+        Trading Account: self.primary.name
+        Balance: self.primary.bal
+        PnL: self.log.pnl if self.log.pnl != None else asyncio.run(self.log.PullPnl())
+        Running: self.running
+
+        Account List:
+        [account list]
+
+        Scheduled tasks:
+        [names of scheduled tasks]
+
+        Structured tasks:
+        [names of structured tasks]
+
+
+        """
+
+        if self.log.pnl == None:
+            asyncio.run(self.log.PullPnL(api_up=api_up))
+
+        scheduled: str
+        structured: str
+        
+        for i in self.structured_scheduler:
+            structured += i[0] + "\n"
+        
+        for i in self.scheduler:
+            scheduled += i[0] + "\n"
+
+        read = (
+                self.name + ':\n' +
+                "Api connection:\n" + str(self.api) + '\n\n' +
+                "Trading Account: " + self.primary.name + '\n' + 
+                "Balance: " + str(self.primary.bal) + '\n' + 
+                "Pnl: " + str(self.log.pnl) + '\n' + 
+                "Running: " + str(self.running) + '\n\n' +
+                "Account List:\n" + str(self.acc_list) + '\n\n' +
+                "Scheduled Tasks:\n" + scheduled + '\n\n' +
+                "Structured Tasks:\n" + structured + '\n\n'
+               )
+        
+        return read
+
+    def set_primary(self, primary: int = 0):
+
+        self.primary = Acc(self.acc_list,primary)
 
     def add_data(self, 
                  name: str, 
@@ -40,15 +114,45 @@ class Strategy:
         datasteam = Chart(search_Id,self.api,timeframe=timeframe,compound=compound,data=data,max=max)
         self.data.append((name, datasteam))
 
-    def add_scheduled_task(self, name: str, task: asyncio.Coroutine, frequency: int, condition: bool = True):
+    def add_scheduled_task(self, name: str, task: asyncio.Coroutine, frequency: float | int, condition: bool = True):
 
         period = frequency / 60
-        self.scheduler.append((name,task,period,condition))
+        self.scheduler.append((name,task,period,lambda: condition))
     
+    def add_structured_task(self, name: str, task: asyncio.Coroutine, mins_exc: int | float = 0, condition: bool = True):
+
+        self.structured_scheduler.append((name,task,mins_exc))
+
     async def run_task(self, task: tuple):
 
-        asyncio.wait(task[2])
-        if task[3]:
-            self.loop.create_task(task[1])
+        while self.running:
+            asyncio.sleep(task[2])
+            if task[3] and self.running:
 
-        return 'Done task ' + task[0]
+                todo = self.loop.create_task(task[1])
+                await todo
+        
+        return
+    
+    async def run_structured_task(self, task: tuple):
+
+        while self.running:
+            
+            asyncio.sleep(TimeToNext(task[2]))
+            todo = self.loop.create_task(task[1])
+            await todo
+        
+        return
+
+    async def run(self):
+
+        self.running = True
+        print(self.name,"Strategy is now running...")
+        async with asyncio.TaskGroup() as tg:
+            tasks_scheduled = [tg.create_task(self.run_task(items)) for items in self.scheduler]
+            tasks_structured = [tg.create_task(self.run_structured_task(items)) for items in self.structured_scheduler]
+
+    def stop(self):
+
+        self.running = False
+        print(self.name,"Strategy is now stopped...")
