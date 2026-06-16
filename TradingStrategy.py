@@ -21,7 +21,7 @@ def TimeToNext(mins: int | float):
     next: float
 
     if type(mins) == int:
-        next = mins - now.minute % mins * 60 - now.second - now.microsecond / 1_000_000
+        next = (mins - now.minute % mins) * 60 - now.second - now.microsecond / 1_000_000
 
     elif type(mins) == float: 
         min = now.minute + now.second / 60 + now.microsecond / 60_000_000
