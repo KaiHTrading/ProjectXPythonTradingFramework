@@ -15,6 +15,7 @@ class TradeLogPnL:
 
         self.api = api
         self.account = account
+        self.pnl = None
 
     async def PullLog(self, length=1, api_up = None | bool) -> str:
         """
@@ -159,8 +160,12 @@ class TradeLogPnL:
                 
                     pnl += i["profitAndLoss"] + i['fees'] + i['comissions'] if not i['voided'] else 0
 
+                self.pnl = pnl
                 return pnl
 
             except KeyError:
                 return ''
 
+    def ResetPnL(self):
+
+        self.pnl = None

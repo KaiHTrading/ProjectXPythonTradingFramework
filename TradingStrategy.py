@@ -29,6 +29,27 @@ def TimeToNext(mins: int | float):
 
     return next
 
+def Factory(task: function, data: tuple):
+
+    length = len(data)
+
+    if length == 0:
+        return task()
+    elif length == 1:
+        return task(data[0])
+    elif length == 2:
+        return task(data[0],data[1])
+    elif length == 3:
+        return task(data[0],data[1],data[2])
+    elif length == 4:
+        return task(data[0],data[1],data[2],data[3])
+    elif length == 5:
+        return task(data[0],data[1],data[2],data[3],data[4])
+    elif length == 6:
+        return task(data[0],data[1],data[2],data[3],data[4],data[5])
+    else:
+        print("Too many datapoints")
+
 class Strategy:
 
     def __init__(self, name: str, primary: int = 0):
@@ -75,8 +96,8 @@ class Strategy:
         if self.log.pnl == None:
             asyncio.run(self.log.PullPnL(api_up=api_up))
 
-        scheduled: str
-        structured: str
+        scheduled = ''
+        structured = ''
         
         for i in self.structured_scheduler:
             structured += i[0] + "\n"
@@ -98,9 +119,9 @@ class Strategy:
         
         return read
 
-    def set_primary(self, primary: int = 0):
+    def set_primary(self, primary: int = 0, name: str = ''):
 
-        self.primary = Acc(self.acc_list,primary)
+        self.primary = Acc(self.acc_list,value=primary,name=name)
 
     def add_data(self, 
                  name: str, 
@@ -108,29 +129,34 @@ class Strategy:
                  timeframe: str = 'm', 
                  compound: int = 1,
                  max:int = 1000, 
-                 data: None | list[dataset,schema,stype_in,symbols] = None):
+                 data: None | list = None):
 
         search_Id = Get_ID(self.api.token,search=search)
-        datasteam = Chart(search_Id,self.api,timeframe=timeframe,compound=compound,data=data,max=max)
+        datasteam = Chart(contract_id=search_Id['id'],interface=self.api,timeframe=timeframe,compound=compound,subscribe=data,max=max)
         self.data.append((name, datasteam))
 
-    def add_scheduled_task(self, name: str, task: asyncio.Coroutine, frequency: float | int, condition: bool = True):
+    def add_scheduled_task(self, name: str, task: function, frequency: float | int, condition: bool = True, data: tuple = ()):
 
-        period = frequency / 60
-        self.scheduler.append((name,task,period,lambda: condition))
+        period = 60 / frequency
+        self.scheduler.append((name,task,period,lambda: condition, data))
     
-    def add_structured_task(self, name: str, task: asyncio.Coroutine, mins_exc: int | float = 0, condition: bool = True):
+    def add_structured_task(self, name: str, task: function, mins_exc: int | float = 0, data: tuple = ()):
 
-        self.structured_scheduler.append((name,task,mins_exc))
+        self.structured_scheduler.append((name,task,mins_exc, data))
 
     async def run_task(self, task: tuple):
 
         while self.running:
-            asyncio.sleep(task[2])
+            await asyncio.sleep(task[2])
             if task[3] and self.running:
-
-                todo = self.loop.create_task(task[1])
-                await todo
+                
+                try:
+                    print("Running:",task[0])
+                    todo = self.loop.create_task(Factory(task[1],task[4]))
+                    await todo
+                except TypeError:
+                    print("Call",task[0],"failed")
+                
         
         return
     
@@ -138,11 +164,52 @@ class Strategy:
 
         while self.running:
             
-            asyncio.sleep(TimeToNext(task[2]))
-            todo = self.loop.create_task(task[1])
-            await todo
+            try:
+                print("Running:",task[0])
+                await asyncio.sleep(TimeToNext(task[2]))
+                todo = self.loop.create_task(Factory(task[1],task[3]))
+                await todo
+            except TypeError:
+                    print("Call",task[0],"failed")
+            
         
         return
+
+    def PlaceOrder(self, data: Chart, dir: str, type: int, price: None | float = None, size: int = 1, api_up: None | bool = None):
+        
+        if api_up == None:
+            api_up = bool(self.api)
+        
+        if not api_up:
+            return
+
+        L_S = 0 if dir.__contains__('l') else 1
+
+        return self.management.PlaceOrder(data.con_id,type,price,L_S,size,api_up)
+    
+    def PlaceOrderOCO(self, data: Chart, dir: str, type: int, price: None | int = None, size: int = 1, api_up: None | bool = None, bracket: tuple = ()): #(sl, tp)
+        
+        if api_up == None:
+            api_up = bool(self.api)
+        
+        if not api_up:
+            return
+
+        L_S = 0 if dir.__contains__('l') else 1
+        sl = bracket[0]
+        tp = bracket[1]
+
+        return self.management.PlaceOrderOCO(data.con_id,type,price,sl,tp,L_S,size,api_up)
+
+    def ClosePosition(self, data: Chart, api_up: None | bool = None):
+
+        if api_up == None:
+            api_up = bool(self.api)
+        
+        if not api_up:
+            return
+
+        return self.management.ClosePosition(data.con_id, api_up)
 
     async def run(self):
 

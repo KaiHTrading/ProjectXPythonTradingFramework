@@ -11,11 +11,13 @@ from ApiInterface import ApiInterface as Api
 
 class Account:
 
-    def __init__(self, list: AccList, value=0):
+    def __init__(self, list: AccList, value: int = 0, name: str = ''):
         
         try:
-            self.account = AccList.accounts[value]
-            self.api = AccList.api
+            for i in list.accounts if name != '' else []:
+                value = list.accounts.index(i) if i[1].__contains__(name) else value
+            self.account = list.accounts[value]
+            self.api = list.api
             self.id = self.account[0]
             self.name = self.account[1]
             self.bal = self.account[2]

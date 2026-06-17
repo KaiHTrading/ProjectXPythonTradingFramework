@@ -31,23 +31,28 @@ class CandleData:
     def __init__(self, 
                  contract_id: str, 
                  interface: Api | None = None, 
-                 timeframe: str = 'm' | 's, m, h, D, W, M, Y', 
+                 timeframe: str = 'm', #'s, m, h, D, W, M, Y'
                  compound: int = 1, 
                  max: int = 1000, 
                  stream: str | None = None,
-                 subscribe: list = [dataset, schema, stype_in, symbols]):
+                 subscribe: list = []): #[dataset, schema, stype_in, symbols]
         
         self.api = interface
         self.stream = stream
         self.timeframe = TimeframeType(timeframe)
         self.compound = compound
-        self.data = [None] * max
+        self.data = []
         self.max = max
         self.con_id = contract_id
         self.close = None
 
         if self.api == None:
             pass #databento implementation coming later
+
+
+    def UpdateDataFactory(self):
+
+        return self.UpdateData()
 
     async def UpdateData(self): #gets past candles to use for calculations
 
@@ -61,8 +66,11 @@ class CandleData:
                                              unit=self.timeframe,
                                              unit_num=self.compound,
                                              limit=self.max)
-            self.data = candles if candles != '' else self.data
+            self.data = candles
 
+    def GetCloseFactory(self):
+
+        return self.GetClose()
 
     async def GetClose(self): #gets live price data if needed
         

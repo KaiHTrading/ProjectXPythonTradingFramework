@@ -828,28 +828,28 @@ async def Get_Candles_Sync(token, contract_id, live=False, unit=2, unit_num=1, l
     limit: bars to retrieve\n
     include_curr: if you want the partially done bar\n
     """
-
-    time_now = datetime.now(timezone.utc).astimezone()
     t1 = timedelta(seconds=1)
+    time_now = datetime.now(timezone.utc) + t1
+    
     #set the timedelta
     if unit == 1:
         total_time = limit * (unit_num)
-        t1 = timedelta(seconds=total_time)
+        t1 = timedelta(seconds=total_time+1)
     elif unit == 2:
         total_time = limit * (unit_num)
-        t1 = timedelta(minutes=total_time)
+        t1 = timedelta(minutes=total_time,seconds=1)
     elif unit == 3:
         total_time = limit * (unit_num)
-        t1 = timedelta(hours=total_time)
+        t1 = timedelta(hours=total_time,seconds=1)
     elif unit == 4:
         total_time = limit * (unit_num)
-        t1 = timedelta(days=total_time)
+        t1 = timedelta(days=total_time,seconds=1)
     elif unit == 5:
         total_time = limit * (unit_num)
-        t1 = timedelta(weeks=total_time)
+        t1 = timedelta(weeks=total_time,seconds=1)
     elif unit == 6:
         total_time = limit * (unit_num) * 4
-        t1 = timedelta(weeks=total_time)
+        t1 = timedelta(weeks=total_time,seconds=1)
 
     #compile time
     time_start = time_now - t1

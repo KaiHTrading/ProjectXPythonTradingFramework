@@ -8,6 +8,7 @@ import os
 from apicall import *
 from Account import Account
 from ApiInterface import ApiInterface as Api
+from DataManager import CandleData as Chart
 
 class OrderPositionManager:
 
@@ -18,7 +19,16 @@ class OrderPositionManager:
         self.orderlist = []
         self.positionlist = []
 
-    async def Update(self, api_up = None | bool):
+    async def FindPosition(self, contract: str):
+
+        send = 0
+        for i in self.positionlist:
+
+            send = i["type"] if contract == i['contractId'] else send
+        
+        return send
+
+    async def Update(self, api_up: None | bool = None):
 
         if api_up == None:
             api_up = await Ping()
@@ -38,8 +48,10 @@ class OrderPositionManager:
 
         self.orderlist = orders if orders != '' else self.orderlist
         self.positionlist = positions if positions != '' else self.positionlist
+
+        return orders, positions
     
-    async def UpdateOrders(self, api_up = None | bool):
+    async def UpdateOrders(self, api_up: None | bool = None):
         
         if api_up == None:
             api_up = await Ping()
@@ -50,8 +62,14 @@ class OrderPositionManager:
         orders = await Check_Orders_Sync(self.api.token,self.primary.id)
 
         self.orderlist = orders if orders != '' else self.orderlist
+
+        return orders
     
-    async def UpdatePositions(self, api_up = None | bool):
+    def UpdatePositionsFactory(self, api_up: None | bool = None):
+
+        return self.UpdatePositions(api_up=api_up)
+
+    async def UpdatePositions(self, api_up: None | bool = None):
         
         if api_up == None:
             api_up = await Ping()
@@ -59,9 +77,11 @@ class OrderPositionManager:
         if not api_up:
             return
 
-        orders = await Check_Positions_Sync(self.api.token,self.primary.id)
+        positions = await Check_Positions_Sync(self.api.token,self.primary.id)
 
-        self.orderlist = orders if orders != '' else self.orderlist
+        self.positionlist = positions if positions != '' else self.positionlist
+
+        return positions
 
     async def PlaceOrder(self, con_id: str, order_type: int, price: float, order_side = 0 | 1, order_size = 1, api_up = None | bool):
         
@@ -142,7 +162,7 @@ class OrderPositionManager:
         except KeyError:
             return ''
         
-    async def CloseOrder(self, value: int = 0, api_up = None | bool):
+    async def CloseOrder(self, value: int = 0, api_up: None | bool = None):
         
         if api_up == None:
             api_up = await Ping()
@@ -184,15 +204,13 @@ class OrderPositionManager:
         except KeyError:
             return ''
         
-    async def ClosePosition(self, value: int = 0, api_up = None | bool):
+    async def ClosePosition(self, con_id: str, api_up: None | bool = None):
 
         if api_up == None:
             api_up = await Ping()
         
         if not api_up:
             return
-        
-        con_id = self.positionlist[value]['contractId']
 
         url = "https://api.topstepx.com/api/Position/closeContract"
 
