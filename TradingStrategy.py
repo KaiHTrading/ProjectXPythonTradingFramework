@@ -29,9 +29,17 @@ def TimeToNext(mins: int | float):
 
     return next
 
-def Factory(task: function, data: tuple):
+def Factory(task: function, data: tuple | any):
 
-    length = len(data)
+    try:
+        length = len(data)
+    except TypeError:
+        return task()
+    
+    type_data = type(data)
+
+    if type_data != tuple or type_data != list:
+        return task(data)
 
     if length == 0:
         return task()

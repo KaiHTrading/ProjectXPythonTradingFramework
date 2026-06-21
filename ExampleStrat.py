@@ -21,17 +21,22 @@ async def calc(candles: Chart, slow: int, fast: int): #make your calculation loo
     
     global Sma_Slow
     global Sma_Fast
-    Sma_Slow = SMA(candles.data,slow)
-    Sma_Fast = SMA(candles.data,fast)
-
-def set_api_f():
-
-    return set_api_up()
+    global NQ
+    Sma_Slow = SMA(NQ.data,slow)
+    Sma_Fast = SMA(NQ.data,fast)
 
 async def set_api_up():
 
     global api_up
     api_up = await Ping() 
+
+trade_dir = 0
+async def get_side():
+
+    global trade_dir
+
+    side = SMA_Crossover.management.FindPosition(NQ.con_id)
+    trade_dir = await side
 
 SMA_Crossover = Strategy("Sma Crossover")
 print(SMA_Crossover) #check for the token to not be blank (connection is established)
@@ -54,17 +59,27 @@ SMA_Crossover.add_scheduled_task("Calc",
                                  data=[NQ,14,9] )
 
 SMA_Crossover.add_scheduled_task("Pos Update",
-                                 SMA_Crossover.management.UpdatePositionsFactory,
+                                 SMA_Crossover.management.UpdatePositions,
                                  4)
 
 SMA_Crossover.add_scheduled_task("Close Pos in oppsite direction",
                                  SMA_Crossover.ClosePosition,
                                  8,
-                                 dir+1!=SMA_Crossover.management.FindPosition,
-                                 data=tuple(NQ.con_id))
+                                 dir+1!=trade_dir,
+                                 data=NQ.con_id)
+
+SMA_Crossover.add_scheduled_task("Place order when available",
+                                  SMA_Crossover.management.PlaceOrder,
+                                  8,
+                                  trade_dir == 0,
+                                  data=(NQ.con_id,2,None,dir,1,api_up) )
+
+SMA_Crossover.add_scheduled_task("Get current trade direction",
+                                 get_side,
+                                 15)
 
 SMA_Crossover.add_scheduled_task("Ping API",
-                                 set_api_f,
+                                 set_api_up,
                                  15)
 
 print(SMA_Crossover)

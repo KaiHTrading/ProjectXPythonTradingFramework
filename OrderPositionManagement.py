@@ -65,10 +65,6 @@ class OrderPositionManager:
 
         return orders
     
-    def UpdatePositionsFactory(self, api_up: None | bool = None):
-
-        return self.UpdatePositions(api_up=api_up)
-
     async def UpdatePositions(self, api_up: None | bool = None):
         
         if api_up == None:
