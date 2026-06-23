@@ -283,7 +283,7 @@ async def Place_Order_Sync_Braket(token, acc_id, contract_id, order_type, side, 
 
 
     payload = {
-    "accountId": acc_id[0],
+    "accountId": acc_id,
     "contractId": contract_id['id'],
     "type": order_type,
     "side": side,
@@ -427,7 +427,7 @@ def Place_Order_Bracket(token, acc_id, contract_id, order_type, side, size, stop
 
 
     payload = json.dumps({
-    "accountId": acc_id[0],
+    "accountId": acc_id,
     "contractId": contract_id['id'],
     "type": order_type,
     "side": side,
@@ -519,7 +519,7 @@ def Place_Order(token, acc_id, contract_id, order_type, side, size, price=None):
 
 
     payload = json.dumps({
-    "accountId": acc_id[0],
+    "accountId": acc_id,
     "contractId": contract_id['id'],
     "type": order_type,
     "side": side,
@@ -615,7 +615,7 @@ async def Close_All_Orders_And_Postions_Sync(token, acc_id):
     url2 = "https://api.topstepx.com/api/Position/searchOpen"
 
     payload2 = {
-    "accountId": acc_id[0]
+    "accountId": acc_id
     }
     headers2 = {
     'accept': 'text/plain',
@@ -637,7 +637,7 @@ async def Close_All_Orders_And_Postions_Sync(token, acc_id):
         url = "https://api.topstepx.com/api/Position/closeContract"
 
         payload = {
-        "accountId": acc_id[0],
+        "accountId": acc_id,
         "contractId": response2['positions'][i]['contractId']
         }
         headers = {
@@ -668,7 +668,7 @@ def Close_All_Orders_And_Postions(token, acc_id):
     url1 = "https://api.topstepx.com/api/Order/searchOpen"
 
     payload1 = json.dumps({
-    "accountId": acc_id[0]
+    "accountId": acc_id
     })
     headers1 = {
     'accept': 'text/plain',
@@ -689,7 +689,7 @@ def Close_All_Orders_And_Postions(token, acc_id):
             url = "https://api.topstepx.com/api/Order/cancel"
 
             payload = json.dumps({
-            "accountId": acc_id[0],
+            "accountId": acc_id,
             "orderId": response1['orders'][i]['id']
             })
             headers = {
@@ -707,7 +707,7 @@ def Close_All_Orders_And_Postions(token, acc_id):
     url2 = "https://api.topstepx.com/api/Position/searchOpen"
 
     payload2 = json.dumps({
-    "accountId": acc_id[0]
+    "accountId": acc_id
     })
     headers2 = {
     'accept': 'text/plain',
@@ -728,7 +728,7 @@ def Close_All_Orders_And_Postions(token, acc_id):
             url = "https://api.topstepx.com/api/Position/closeContract"
 
             payload = json.dumps({
-            "accountId": acc_id[0],
+            "accountId": acc_id,
             "contractId": response2['positions'][i]['contractId']
             })
             headers = {
